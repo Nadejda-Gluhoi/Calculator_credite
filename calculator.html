@@ -1,0 +1,2354 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Calculator de credite</title>
+    <link href="/img/i/favicon.png" type="image/x-icon" rel="shortcut icon" />
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+  
+  <link rel="stylesheet" type="text/css" href="stiluri.css" />
+ <script  src="dinamica.js"></script> 
+
+</head>
+
+<body id="page-micb-ro" class="user">
+    <div id="form-contatiner">
+      <h3 style="text-align:center;color:#244f8e;font:15px Tahoma,Arial,sans-serif;font-weight:bold">Calculează plata lunară şi costul creditului</span></h3>
+        <form id="form">
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Tipul creditului</span>
+                <span class="product-span"><select name="product" id="product"></select></span>
+            </p>
+
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Data primirii creditului</span>
+                <span><input type="text" id="start_date" name="start_date" value=""></input></span>
+            </p>
+
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Suma, lei</span>
+                <span><strong id="sum_min_max"></strong><input type="text" id="value" name="value" value="" ></input></span>
+            </p>
+
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Perioada, luni</span>
+                <span><select name="period" id="period"></select></span>
+            </p>
+
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Ziua plății</span>
+                <span><select name="pay_date" id="pay_date"></select></span>
+            </p>
+
+            <p><span style="text-align:justify;color:#244f8e;font:14px Tahoma,Arial,sans-serif;font-weight:bold">Rata anuală  a dobânzii, %</span>
+                <span id="rate_p"></span>
+            </p>
+            <p style="padding-left:204px;"><span>
+	  <input type="submit" value="Calculează" class="submit" /></span>
+            </p>
+
+
+        </form>
+    </div>
+
+    <table class="scheme2 hidden">
+        <tr>
+            <th>Luna</th>
+            <th>Data</th>
+            <th>Sold credit</th>
+            <th>Rata lunară</th>
+            <th>Creditul rambursat</th>
+            <th>Credit rămas</th>
+            <th>Comision de examinare</th>
+            <th>Comision de acordare</th>
+            <th>Comision de administrare</th>
+            <th>Dobânda</th>
+            <th>Plata lunară</th>
+        </tr>
+        <tr class="template">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+
+    <table class="scheme2-full">
+        <tbody></tbody>
+    </table>
+
+
+    <div id="note-container">
+        <div style="width:300px;">
+            <p class="details-text" style="width:600px;"><span>Costul total al creditului, %:</span><span id="dae"></span>
+            </p>
+        </div>
+        <div>
+            <p class="note">Calculele prezentate sunt valabile până la următoarea modificare a ratei dobânzii şi sunt efectuate din ipoteza că suma totală a creditului este acordată imediat şi în întregime, valoarea totală a creditului se consideră a fi achitată în întregime, conform graficului din contract. În cazul achitării anticipate calculele se vor modifica.</p>
+        </div>
+    </div>
+
+</body>
+
+
+
+
+<script type="text/javascript">
+ 
+    $(function() {
+
+        $("#start_date").datepicker({
+            dateFormat: 'd.mm.yy',
+            constrainInput: true,
+            firstDay: 1,
+            //minDate: -50
+            beforeShowDay: noWeekendsOrHolidays
+            // $("#start_date").datepicker({ minDate: 0, maxDate: "+1M +10D", beforeShowDay: $.datepicker.noWeekends 
+        });
+
+
+        $('#product option').each(function(elm) {
+            $(this).remove()
+        });
+        $('#product').append($("<option></option>").attr("value", "").text(""));
+
+        $.each(credits, function(item) {
+            $('#product').append(
+                $("<option></option>")
+                .attr("value", item + 1)
+                .text(credits[item]['product'])
+            );
+        });
+
+
+
+
+        //schema de calculare_4(credits[3]);
+
+    });
+
+
+
+
+    /* functie pt forma*/
+
+
+    $('#product').change(function(elm) {
+        if ($(this).val() == 0) {
+            $('#period option').each(function(elm) {
+                $(this).remove()
+            });
+            $('#pay_date option').each(function(elm) {
+                $(this).remove()
+            });
+
+            $('#sum_min_max').text(" ");
+            $('#value').attr("value", "");
+            $('#rate_p').text("");
+            $('#dae').text("");
+            return;
+        }
+
+        var p = credits[$(this).val() - 1];
+        //    console.log(p);
+
+
+        $('#period option').each(function(elm) {
+            $(this).remove()
+        });
+        if (p.duration_list) {
+            var duration_list = $(p.duration_list.split(","));
+            duration_list.each(function(i, m) {
+                if (m == parseInt(p.duration_max_m)) {
+                    $('#period').append($("<option></option>").attr({
+                        "value": m,
+                        "selected": "selected"
+                    }).text(m));
+                } else {
+                    $('#period').append($("<option></option>").attr("value", m).text(m));
+                }
+            });
+        } else {
+            for (var i = p.duration_min_m; i <= p.duration_max_m; i++) {
+                if (i == parseInt(p.duration_max_m)) {
+                    $('#period').append($("<option></option>").attr({
+                        "value": i,
+                        "selected": "selected"
+                    }).text(i));
+                } else {
+                    $('#period').append($("<option></option>").attr("value", i).text(i));
+                }
+            }
+        }
+
+        $('#pay_date option').each(function(elm) {
+            $(this).remove()
+        });
+        for (var i = parseInt(p.pay_day_min); i <= parseInt(p.pay_day_max); i++) {
+            $('#pay_date').append($("<option></option>").attr("value", i).text(i));
+        }
+
+        $('#sum_min_max').text(" " + p.sum_min + " - " + p.sum_max + " " + p.currency);
+        var default_value = p.sum_max > 500000 ? 500000 : p.sum_max;
+        $('#value').attr("value", default_value);
+
+        $('#rate_p').text(p.rate_p);
+    });
+
+
+
+    /* am creat un arra pt zilele ce trebuie sa fie disabled */
+    var disabledDays = ["1-1-2014", "3-8-2014", "5-1-2014", "5-9-2014", "8-27-2014", "8-31-2014", "12-25-2014"];
+
+    function nationalDays(date) {
+        var m = date.getMonth(),
+            d = date.getDate(),
+            y = date.getFullYear();
+        //console.log('Checking (raw): ' + m + '-' + d + '-' + y);
+        for (i = 0; i < disabledDays.length; i++) {
+            if ($.inArray((m + 1) + '-' + d + '-' + y, disabledDays) != -1 || new Date() > date) {
+                //console.log('bad:  ' + (m+1) + '-' + d + '-' + y + ' / ' + disabledDays[i]);
+                return [false];
+            }
+        }
+        //console.log('good:  ' + (m+1) + '-' + d + '-' + y);
+        return [true];
+    }
+
+    function noWeekendsOrHolidays(date) {
+        var noWeekend = jQuery.datepicker.noWeekends(date);
+        return noWeekend[0] ? nationalDays(date) : noWeekend;
+    }
+
+
+
+
+    /* calculele */
+
+    $('#form').submit(function(elm) {
+        var p = credits[$('#product').val() - 1];
+        if (!validate(p))
+            return false;
+
+        $('#note-container').show();
+        $('#dae').text('');
+        $(".scheme2-full tr").each(function(elm) {
+            $(this).remove()
+        });
+
+
+        if (p.scheme == 1) calculate_scheme_1(p);
+        if (p.scheme == 2) calculate_scheme_2(p);
+        if (p.scheme == 3) calculate_scheme_3(p);
+        if (p.scheme == 4) calculate_scheme_4(p);
+
+        return false;
+    });
+
+
+    $('input').change(function(elm) {
+        var p = credits[$('#product').val() - 1];
+        validate(p);
+    });
+
+
+
+
+    function calculate_scheme_4(p) {
+        //    $(".scheme2-full tr").each(function(elm){$(this).remove()})
+        //    console.log(p);
+
+
+
+        var period = parseInt($('#period').val()) || 30;
+        //    period = 30;
+
+        var pay_date = $('#pay_date').val() || 10;
+        //    pay_date = 10;
+
+        var value = parseInt($('#value').val()) || 10000;
+        //    value = 10000;
+
+
+
+        /*
+            console.log(period);
+            console.log(pay_date);
+            console.log(value);
+            console.log(rate_p);
+            console.log(start_date);
+        */
+
+        var rate_p = parseFloat(p.rate_p);
+
+        var start_date = $("#start_date").datepicker('getDate');
+        //    start_date = new Date();
+
+        //    var start_date = new Date();
+        //    start_date.setMonth(0);
+        //    start_date.setDate(23);
+
+
+
+        var curr_date = start_date;
+        var end_date = new Date(start_date);
+        end_date.setMonth(start_date.getMonth() + period);
+
+        var month_fee = 0;
+        var month_fee_fixed = 0;
+        var month_fee_sum = 0.0;
+        var month_fee_accord = 0;
+        var month_fee_accord_passive = 0;
+        var value_current = value.toFixed(2);
+        var value_in = value;
+        var value_out = value;
+        var month_fee = 0;
+        var old_date = new Date(curr_date);
+        var rate = rate_p / 100;
+        var value_final = value;
+        var days_total = 0;
+        var day_payment = 0;
+        var period_payment = 0;
+        var period_payment_total = 0;
+        var flux = 0;
+        var flux_original = 0;
+        var flux_last = 0;
+        var nvp = 0;
+        var npv_sum = 0;
+        var total_payment = 0;
+        var total_payment_sum = 0;
+        var commission_exam = p.commission_exam * 1;
+        var commission_administration_m_n = value * parseFloat(p.commission_administration_m_p) / 100;
+        var commission_administration_m_n_sum = 0;
+        var commission_administration_day_n = 0;
+        var commission_usage = 0;
+        var discount = 0;
+        var days_commulative = [];
+        var flux_commulative = [];
+        var A = B = C = D = E = F = G = H = I = J = K = L = M = N = O = P = Q = R = S = T = 0;
+        var sub_div = 1;
+        var S = 2;
+        var C_sum = M_sum = G_sum = T_sum = K_sum = I_sum = 0;
+        var B_sum = value;
+
+
+        var commission_according_n = value * p.commission_accord_p / 100;
+        if (commission_according_n < p.commission_accord_min)
+            commission_according_n = p.commission_accord_min;
+
+
+        var r = rate / 12;
+
+        commission_administration_day_n = value * parseFloat(p.commission_administration_m_p) * 12 / 100 / 365;
+
+        K = p['commission_accord_p'] / 100 * value;
+        K_sum = K;
+
+        commission_usage = p['commission_usage_p'] / 100 * value;
+        T_sum += commission_usage;
+
+        template = "<tr>";
+        template += "<th>Luna</th>";
+        template += "    <th>Suma creditului acordată</th>";
+        template += "    <th>Rata lunară</th>";
+        template += "    <th>Sold credit</th>";
+        template += "    <th>Credit rămas</th>";
+        template += "    <th>Data</th>";
+        template += "    <th class=\"tech\">Dobânda</th>";
+        template += "    <th class=\"tech\">Zi Plata</th>";
+        template += "    <th>Dobânda</th>";
+        template += "    <th>Comision examinare</th>";
+        template += "    <th>Comision acordare</th>";
+        template += "    <th>Comision administrare</th>";
+        template += "    <th>Comision utilizare</th>";
+        template += "    <th class=\"tech\">Zile</th>";
+        template += "    <th class=\"tech\">Zile Cumulativ</th>";
+        template += "    <th class=\"tech\">Flux</th>";
+        template += "    <th class=\"tech\">Coeficient de discontare</th>";
+        template += "    <th class=\"tech\">NPV</th>";
+        template += "    <th class=\"tech\">Nr</th>";
+        template += "    <th>TOTAL plăți</th>";
+        template += "  </tr>";
+        template += "  <tr class=\"tech\">";
+        template += "    <th>A</th>";
+        template += "    <th>B</th>";
+        template += "    <th>C</th>";
+        template += "    <th>D</th>";
+        template += "    <th>E</th>";
+        template += "    <th>F</th>";
+        template += "    <th>G</th>";
+        template += "    <th>H</th>";
+        template += "    <th>I</th>";
+        template += "    <th>J</th>";
+        template += "    <th>K</th>";
+        template += "    <th>L</th>";
+        template += "    <th>M</th>";
+        template += "    <th>N</th>";
+        template += "    <th>O</th>";
+        template += "    <th>P</th>";
+        template += "    <th>Q</th>";
+        template += "    <th>R</th>";
+        template += "    <th>S</th>";
+        template += "    <th>T</th>";
+        template += "  </tr>";
+        $(".scheme2-full tbody").append(template);
+
+
+
+
+        flux_original = (value - commission_usage) * -1;
+        template = "<tr>";
+        template += "<td>0</td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>0</td>";
+        template += "<td>0</td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>" + start_date.getDate() + "." + (start_date.getMonth() + 1) + "." + start_date.getFullYear() + "</td>";
+        template += "<td class=\"tech\">-</td>";
+        template += "<td class=\"tech\">" + start_date.getDate() + "." + (start_date.getMonth() + 1) + "." + start_date.getFullYear() + "</td>";
+        template += "<td>0</td>";
+        template += "<td>0</td>";
+        template += "<td>0</td>";
+        template += "<td>0</td>";
+        template += "<td>" + commission_usage.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">0</td>";
+        template += "<td class=\"tech\">0</td>";
+        template += "<td class=\"tech\">" + flux_original.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">1</td>";
+        template += "<td class=\"tech\">" + flux_original.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">1</td>";
+        template += "<td>" + commission_usage.toFixed(2) + "</td>";
+        template += "</tr>";
+
+        sub_start = start_date;
+
+        for (var month = 1; month <= period; month++) {
+
+            if (month > 0) {
+                K = 0;
+            }
+            old_date = new Date(curr_date);
+            curr_date = get_next_pay_date(month, curr_date, pay_date, end_date);
+
+            for (var sub = 1; sub <= 2; sub++) {
+                template += "<tr class=\"data";
+                if (sub == 1)
+                    template += " tech";
+                template += "\" >";
+
+
+                sub_start_prev = sub_start;
+
+                sub_start = new Date(curr_date);
+                sub_start.setDate(1);
+                sub_end = new Date(curr_date);
+                sub_end.setDate(pay_date);
+
+                if (sub == 2) {
+                    sub_start.setDate(pay_date);
+                    sub_end.setDate(1);
+                    if (month == period) {
+                        sub_start.setDate(start_date.getDate());
+                        sub_end.setDate(start_date.getDate());
+                    }
+
+                    sub_start = move_date(sub_start);
+                }
+
+                sub_end = move_date(sub_end);
+
+
+                days_in_period = parseInt(((sub_start - sub_start_prev) / (1000 * 24 * 3600)).toFixed());
+                O = days_total += days_in_period;
+
+                //      console.log(days_in_period);
+
+
+
+                // 3 
+                if (month > 0) {
+                    value_current -= month_fee;
+                    //        value_current = value_current.toFixed(2);
+                }
+
+
+                // 9
+                if (month > 0) {
+                    commission_administration_m_n = (commission_administration_day_n * days_in_period).toFixed(2);
+                    commission_administration_m_n_sum += commission_administration_m_n * 1;
+                }
+
+                // 10 
+                day_payment = (value_current * rate / 365).toFixed(2);
+
+                // 13 
+                //      period_payment = (day_payment * days_in_period).toFixed(2);
+                period_payment = (day_payment * days_in_period);
+
+                // 17 
+                // = Suma credit/((1+rata dobinzii/100/termen credit)^termen credit-1)*10.5/100/12*(1+10.5/100/termen credit)^termen credit+(comision pentru o zi*365/12)
+                //      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/12 ).toFixed(2);
+                total_payment = (value / (Math.pow(1 + rate / period, period) - 1) * r * Math.pow(1 + rate / period, period) + commission_administration_day_n * 365 / 12);
+
+
+                /*
+                      // 5
+                      if(month > 0 && month < period){
+                        month_fee = (total_payment - period_payment - commission_administration_m_n).toFixed(2);
+                //        month_fee = total_payment - period_payment - commission_administration_m_n;
+                      }
+                      else if(month == period){
+                        month_fee = value_current;
+                      }
+                      month_fee_sum += month_fee*1;
+                */
+
+                B = month_fee = 0;
+                C = month_fee_accord = 0;
+
+                /*
+
+                !!!  "interval_free": 30, 
+                  "interval_passive": 10, 
+                  "month_free_mandatory_p": 5, 
+
+                */
+                value_in = value_out;
+
+
+
+                // G 
+                //      G = 0;
+                if (month == 2 && sub == 1) {
+                    // =E29*$C$11/100/365*(N28+N29+N30-30)
+                    G = value_out * rate / 365 * (days_total - 30);
+                }
+
+                if (month > 2 || (month == 2 && sub == 2)) {
+                    G = value_out * rate / 365 * (days_in_period);
+                }
+                if (sub == 2)
+                    G_sum += G;
+
+                // I 
+                /// =SUM(G31:G32)
+                if (sub == 1 || (month == period && sub == 2)) {
+                    I += G;
+                    I_sum += I;
+                }
+
+
+                // B, C
+
+                if (month > 1) {
+                    if (sub == 2) {
+                        if (month <= period - parseInt(p.interval_passive)) {
+                            B = C = month_fee = month_fee_accord = value * p.month_free_mandatory_p / 100;
+                        } else {
+                            if (!month_fee_accord_passive) {
+                                month_fee_accord_passive = value_out / p.interval_passive;
+                            }
+                            C = month_fee_accord = month_fee_accord_passive;
+                        }
+                    }
+                }
+
+                B_sum += B;
+                C_sum += C;
+
+                if (!(month == period && sub == 2))
+                    value_out = value_in + month_fee - month_fee_accord;
+
+                // M 
+                M = month_fee * p['commission_usage_p'] / 100;
+
+                // P (Flux)
+                // =M35+L35+K35+J35+I35+C35-B35 (and + G)
+
+                if (sub == 2) {
+                    P = M + L + K + J + I + C - B;
+                }
+
+
+                // Q =1/(1+$R$89/365/100)^O27
+                //   Q = 
+
+
+                // T 
+                // T =M31+L31+K31+J31+I31+C31
+                T = M + L + K + J + I + C;
+                if (sub == 2)
+                    T_sum += T;
+
+
+                // ==================================================================
+
+
+                //# A 1
+                template += "<td>" + month + "</td>";
+
+                //# B 2 
+                //      if(sub == 1)
+                //        template += "<td>0.00</td>";
+                //      else
+                template += "<td>" + month_fee.toFixed(2) + "</td>";
+
+
+                //# C 3
+                //      if(sub == 1)
+                //        template += "<td>0.00</td>";
+                //      else
+                template += "<td>" + month_fee_accord.toFixed(2) + "</td>";
+
+                //# D 4
+                template += "<td>" + value_in.toFixed(2) + "</td>";
+
+
+                //# E 5
+                template += "<td>" + value_out.toFixed(2) + "</td>";
+
+
+                //# F 6
+                value_final -= month_fee;
+                template += "<td>" + sub_start.getDate() + "." + (sub_start.getMonth() + 1) + "." + sub_start.getFullYear() + "</td>";
+
+
+                //-# G 7
+                template += "<td class=\"tech\">" + G.toFixed(2) + "</td>";
+
+                //# H 8
+                if (sub == 1) {
+                    var sub_end_prev = sub_end;
+                    sub_end_prev.setMonth(sub_end.getMonth() - 1);
+
+                    template += "<td class=\"tech\">" + sub_end_prev.getDate() + "." + (sub_end_prev.getMonth() + 1) + "." + sub_end_prev.getFullYear() + "</td>";
+                } else
+                    template += "<td class=\"tech\">" + sub_end.getDate() + "." + (sub_end.getMonth() + 1) + "." + sub_end.getFullYear() + "</td>";
+
+                //# I 9
+                if (sub == 2) {
+                    template += "<td>" + I.toFixed(2) + "</td>";
+                    I = G;
+                } else
+                    template += "<td>0.00</td>";
+
+
+                //# J 10
+                template += "<td>0.00</td>";
+
+                //# K 11
+                template += "<td>0.00</td>";
+
+                //# L 12
+                template += "<td>0.00</td>";
+
+
+                //# M 13
+                template += "<td>" + M.toFixed(2) + "</td>";
+
+
+                //# N 14
+                template += "<td class=\"tech\">" + days_in_period + "</td>";
+
+                //# O 15
+                days_commulative[S - 1] = days_total || 0;
+                template += "<td class=\"tech\">" + days_total + "</td>";
+
+
+
+                //# P 16
+                if (sub == 1) {
+                    flux_commulative[S - 1] = 0;
+                    template += "<td class=\"tech\">0.00</td>";
+                } else {
+                    flux_commulative[S - 1] = P.toFixed(2);
+                    template += "<td class=\"tech\">" + P.toFixed(2) + "</td>";
+                }
+
+
+                //-# Q 17
+                template += "<td class=\"tech\">?</td>";
+
+                //-# R 18 
+                template += "<td class=\"tech\">?</td>";
+
+
+                //# S 19
+                template += "<td class=\"tech\">" + (S++) + "</td>";
+
+                //# T 20
+                if (sub == 2)
+                    template += "<td>" + T.toFixed(2) + "</td>";
+                else
+                    template += "<td></td>";
+
+
+
+                template += "</tr>";
+            }
+        }
+
+        $(".scheme2-full tbody").append(template);
+
+
+
+        //    console.log(flux_commulative);
+        //    console.log(flux_commulative[61]);
+
+
+
+        /// DAE 
+        for (var dae = 1; dae <= 1000; dae += 0.005) {
+            npv_sum = value - commission_usage;
+
+            for (var month = 1; month < S - 1; month++) {
+                flux = flux_commulative[month] * 1;
+
+
+                //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+                discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+                npv = flux * discount;
+                npv_sum -= npv;
+                //        console.log("1/Math.pow((1+"+dae+"/365/100), "+days_commulative[month]+")");
+                //        console.log(month+ " " + flux.toFixed(2) +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0) + " " + days_commulative[month]);
+            }
+
+            //      console.log(dae);
+            //      console.log(npv_sum.toFixed(2));
+
+            if (npv_sum > -0.01 && npv_sum < 0.01) {
+                npv_sum = 0;
+                //        console.log(dae);
+                //        console.log(npv_sum.toFixed(2));
+                //        console.log('return');
+                break;
+            }
+        }
+
+
+        /*
+            console.log(days_commulative[1]);
+            console.log(flux_commulative[1]);
+
+            console.log(days_commulative[2]);
+            console.log(flux_commulative[2]);
+
+            console.log(days_commulative[3]);
+            console.log(flux_commulative[3]);
+
+            console.log(days_commulative[4]);
+            console.log(flux_commulative[4]);
+
+
+            console.log(days_commulative[60]);
+            console.log(flux_commulative[60]);
+
+            console.log(days_commulative[61]);
+            console.log(flux_commulative[61]);
+
+            console.log(S);
+        */
+
+
+        npv_sum = value - commission_usage;
+        for (var month = 1; month < S - 1; month++) {
+            flux = flux_commulative[month] * 1;
+
+            //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+            discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+            npv = flux * discount;
+
+            npv_sum -= npv;
+            //        console.log("1/Math.pow((1+"+dae+"/365/100), "+days_commulative[month]+")");
+            //        console.log(month+ " " + flux.toFixed(2) +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0) + " " + days_commulative[month]);
+
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(16)')[0]).text(discount.toFixed(5));
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(17)')[0]).text(npv.toFixed(2));
+            //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2));
+        }
+
+        T_sum += K_sum;
+        template = "<tr>";
+        template += "<td>TOTAL</td>";
+        //        template += "<td>"+B_sum.toFixed(2)+"</td>";
+        //template += "<td>"+C_sum.toFixed(2)+"</td>";
+        template += "<td>" + value.toFixed(2) + "</td>";
+        template += "<td>" + value.toFixed(2) + "</td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\">" + G_sum.toFixed(2) + "</td>";
+        template += "<td></td>";
+        template += "<td>" + I_sum.toFixed(2) + "</td>";
+        template += "<td>" + commission_exam.toFixed(2) + "</td>";
+        template += "<td>" + commission_according_n.toFixed(2) + "</td>";
+        template += "<td>" + commission_administration_m_n_sum.toFixed(2) + "</td>";
+        template += "<td>" + commission_usage.toFixed(2) + "</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td>" + T_sum.toFixed(2) + "</td>";
+        template += "</tr>";
+
+        template += "<tr class=\"tech\">";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td>DAE:</td>";
+        template += "<td>" + dae.toFixed(1) + "</td>";
+        template += "<td></td>";
+        template += "</tr>";
+
+        $(".scheme2-full tbody").append(template);
+        $('#dae').text(dae.toFixed(1));
+    }
+
+
+
+
+    function calculate_scheme_3(p) {
+        var period = parseInt($('#period').val());
+        var pay_date = $('#pay_date').val();
+        var value = parseInt($('#value').val());
+        var rate_p = parseFloat(p.rate_p);
+
+        var start_date = $("#start_date").datepicker('getDate');
+
+        var curr_date = new Date(start_date);
+        var end_date = new Date(start_date);
+        end_date.setMonth(start_date.getMonth() + period);
+        end_date = move_date(end_date);
+
+        var month_fee = 0;
+        var month_fee_fixed = 0;
+        var month_fee_sum = 0.0;
+        var month_fee_accord = 0;
+        var month_fee_accord_passive = 0;
+        var value_current = value.toFixed(2);
+        var value_in = value;
+        var value_out = value;
+        var month_fee = 0;
+        var old_date = new Date(curr_date);
+        var rate = rate_p / 100;
+        var value_final = value;
+        var days_total = 0;
+        var day_payment = 0;
+        var period_payment = 0;
+        var period_payment_total = 0;
+        var flux = 0;
+        var flux_original = 0;
+        var flux_last = 0;
+        var nvp = 0;
+        var npv_sum = 0;
+        var total_payment = 0;
+        var total_payment_sum = 0;
+        var J = commission_exam = p.commission_exam * 1;
+        var commission_administration_m_n = value * parseFloat(p.commission_administration_m_p) / 100;
+        var commission_administration_m_n_sum = 0;
+        var commission_administration_day_n = 0;
+        var commission_usage = 0;
+        var commission_total = 0;
+        var discount = 0;
+        var days_commulative = [];
+        var flux_commulative = [];
+
+        var A = B = C = D = E = F = G = H = I = K = L = M = N = O = P = Q = R = S = T = 0;
+        var sub_div = 1;
+        var sub_end_prev = 0;
+        var S = 2;
+        var C_sum = M_sum = G_sum = T_sum = K_sum = I_sum = L_sum = 0;
+        var B_sum = value;
+
+
+        var K = commission_according_n = value * p.commission_accord_p / 100;
+        if (commission_according_n < p.commission_accord_min)
+            commission_according_n = p.commission_accord_min;
+        K_sum = K;
+
+        var r = rate / 12;
+
+        commission_administration_day_n = value * parseFloat(p.commission_administration_m_p) * 12 / 100 / 365;
+
+
+        M = commission_usage = p['commission_usage_p'] / 100 * value;
+        M_sum += M;
+        T_sum += commission_usage;
+
+
+        commission_total = K + commission_usage + J;
+
+        flux_original = (value - commission_total) * -1;
+
+        template = "<tr>";
+        template += "<th>Luna</th>";
+        template += "    <th>Data</th>";
+        template += "    <th>Suma creditului acordata</th>";
+        template += "    <th>Rata lunară</th>";
+        template += "    <th>Sold inițial credit</th>";
+        template += "    <th>Sold final credit</th>";
+        template += "    <th>Dobânda</th>";
+        template += "    <th class=\"tech\">Zi Plata</th>";
+        template += "    <th class=\"tech\">Dobânda</th>";
+        template += "    <th>Comision examinare</th>";
+        template += "    <th>Comision acordare</th>";
+        template += "    <th>Comision administrare</th>";
+        template += "    <th>Comision utilizare</th>";
+        template += "    <th class=\"tech\">Zile</th>";
+        template += "    <th class=\"tech\">Zile Cumulativ</th>";
+        template += "    <th class=\"tech\">Flux</th>";
+        template += "    <th class=\"tech\">Coeficient de discontare</th>";
+        template += "    <th class=\"tech\">NPV</th>";
+        template += "    <th class=\"tech\">Nr</th>";
+        template += "    <th>TOTAL plăți</th>";
+        template += "  </tr>";
+        template += "  <tr class=\"tech\">";
+        template += "    <th>A</th>";
+        template += "    <th>F</th>";
+        template += "    <th>B</th>";
+        template += "    <th>C</th>";
+        template += "    <th>D</th>";
+        template += "    <th>E</th>";
+        template += "    <th>G</th>";
+        template += "    <th>H</th>";
+        template += "    <th>I</th>";
+        template += "    <th>J</th>";
+        template += "    <th>K</th>";
+        template += "    <th>L</th>";
+        template += "    <th>M</th>";
+        template += "    <th>N</th>";
+        template += "    <th>O</th>";
+        template += "    <th>P</th>";
+        template += "    <th>Q</th>";
+        template += "    <th>R</th>";
+        template += "    <th>S</th>";
+        template += "    <th>T</th>";
+        template += "  </tr>";
+        $(".scheme2-full tbody").append(template);
+
+
+
+        template = "<tr>";
+        template += "<td>0</td>";
+        template += "<td>" + start_date.getDate() + "." + (start_date.getMonth() + 1) + "." + start_date.getFullYear() + "</td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>0</td>";
+        template += "<td>0</td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>-</td>";
+        template += "<td class=\"tech\">" + start_date.getDate() + "." + (start_date.getMonth() + 1) + "." + start_date.getFullYear() + "</td>";
+        template += "<td class=\"tech\">0</td>";
+        template += "<td>" + J.toFixed(2) + "</td>";
+        template += "<td>" + K.toFixed(2) + "</td>";
+        template += "<td>0</td>";
+        template += "<td>" + commission_usage.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">0</td>";
+        template += "<td class=\"tech\">0</td>";
+        template += "<td class=\"tech\">" + flux_original.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">1</td>";
+        template += "<td class=\"tech\">" + flux_original.toFixed(2) + "</td>";
+        template += "<td class=\"tech\">1</td>";
+        template += "<td>" + commission_total.toFixed(2) + "</td>";
+        template += "</tr>";
+
+        sub_start = new Date(start_date);
+        sub_end = new Date(start_date);
+
+
+        for (var month = 1; month <= period; month++) {
+            if (month > 0) {
+                K = 0;
+            }
+
+            //console.log("start curr"); 
+            //console.log(start_date); 
+            //console.log(curr_date); 
+            //old_date = new Date(curr_date);
+            curr_date = new Date(get_next_pay_date(month, curr_date, pay_date, end_date));
+            //console.log(curr_date); 
+            for (var sub = 1; sub <= 2; sub++) {
+                template += "<tr class=\"data";
+                if (sub == 1)
+                    template += " tech";
+                template += "\" >";
+
+
+                sub_start_prev = sub_start;
+                //	  sub_end_prev = sub_start;
+
+                // F
+                if (sub == 1) {
+                    sub_start = new Date(sub_end);
+                    sub_start.setDate(1);
+                }
+
+                //      sub_start = new Date(curr_date);
+                //      sub_start.setDate(1);
+                //	  if(sub_start < start_date){
+                //	     sub_start = start_date;
+                //		 sub_start.setMonth(sub_start.getMonth()+1);
+                //		 sub_start.setDate(pay_date);
+                //	  }
+
+                /*
+                      sub_end.setDate(pay_date);
+                	  	  if(sub_end < start_date){
+                	     sub_end = new Date(start_date);
+                	  }
+                */
+
+
+                if (sub == 2) {
+                    //sub_start.setDate(pay_date);
+                    sub_start = new Date(sub_end);
+                    //        sub_end = new Date(curr_date);
+                    sub_end.setMonth(sub_end.getMonth() + 1);
+                    sub_end.setDate(pay_date);
+                    sub_end = move_date(sub_end);
+
+                    if (month == period && (sub_end < end_date || sub_end > end_date)) {
+                        sub_end = new Date(end_date);
+                        ///sub_start.setDate(start_date.getDate());
+                        //          sub_end.setDate(start_date.getDate());
+                    }
+                }
+
+                if (month == period && sub_start < end_date && sub == 2) {
+                    sub_start = new Date(end_date);
+                    sub_start = move_date(sub_start);
+                }
+
+
+                // H	
+                if (sub_start < start_date) {
+                    //sub_start = new Date(start_date);
+                    sub_start.setMonth(sub_start.getMonth() + 1);
+                }
+
+                //console.log("start" + sub_end + " " +start_date);
+                if (sub_end <= start_date) {
+                    sub_end = new Date(curr_date);
+                }
+
+                ///console.log(sub_end + " < " + start_date);
+
+                //      sub_end = move_date(sub_end);
+                //	  if(sub_end_prev < start_date){
+                //	    sub_end_prev = sub_end;
+                //	  }
+
+                days_in_period = parseInt(((sub_start - sub_start_prev) / (1000 * 24 * 3600)).toFixed());
+
+                //console.log(days_in_period);
+
+
+                // O
+                //      O = days_total += days_in_period;	
+
+
+                // 3 
+                if (month > 0) {
+                    value_current -= month_fee;
+                }
+
+
+
+                // L 9
+                //      if(days_total >= p.interval_free*1){
+                if (days_total + days_in_period >= p.interval_free * 1) {
+                    L = commission_administration_m_n = (commission_administration_day_n * days_in_period);
+                    L_sum = commission_administration_m_n_sum += commission_administration_m_n * 1;
+                }
+
+                // 10 
+                day_payment = (value_current * rate / 365).toFixed(2);
+
+                // 13 
+                period_payment = (day_payment * days_in_period);
+
+                // 17 
+                total_payment = (value / (Math.pow(1 + rate / period, period) - 1) * r * Math.pow(1 + rate / period, period) + commission_administration_day_n * 365 / 12);
+
+
+                // B, C
+                B = month_fee = 0;
+                C = month_fee_accord = 0;
+
+                if (days_total >= p.interval_free * 1) {
+                    if (sub == 2) {
+                        if (month <= period - parseInt(p.interval_passive)) {
+                            B = C = month_fee = month_fee_accord = value * p.month_free_mandatory_p / 100;
+                        } else {
+                            if (!month_fee_accord_passive) {
+                                //
+                                // yak
+                                // if there are less than interval_passive months to pay off, increase the base 5% monthly pay
+                                //
+                                var free_months_at_start = Math.ceil(p.interval_free/30);
+                                if(period < p.interval_passive + free_months_at_start) {
+                                   // console.warn('new month fee accord required');
+                                    month_fee_accord_passive = value_out / (period - free_months_at_start);
+                                } else {
+                                    month_fee_accord_passive = value_out / p.interval_passive;
+                                }
+                            }
+                            C = month_fee_accord = month_fee_accord_passive;
+                        }
+                    }
+                }
+
+                B_sum += B;
+                C_sum += C;
+
+
+
+
+                value_in = value_out;
+
+
+
+                // G 
+                //      G = 0;
+
+
+                //      if(month == 2 && sub == 1){
+                if (days_total + days_in_period >= p.interval_free * 1 && sub == 1 && G == 0) {
+                    // =E29*$C$11/100/365*(N28+N29+N30-30)
+                    G = value_out * rate / 365 * (days_total + days_in_period - p.interval_free * 1);
+                }
+
+
+                if (days_total >= p.interval_free) {
+                    G = value_out * rate / 365 * (days_in_period);
+                }
+                if (sub == 2)
+                    G_sum += G;
+
+                // I 
+                /// =SUM(G31:G32)
+                if (sub == 1 || (month == period && sub == 2)) {
+                    I += G;
+                    I_sum += I;
+                }
+
+
+                // O
+                O = days_total += days_in_period;
+
+
+
+                if (!(month == period && sub == 2))
+                    value_out = value_in + month_fee - month_fee_accord;
+
+                // M 
+                M = month_fee * p['commission_usage_p'] / 100;
+                M_sum += M;
+
+                // P (Flux)
+                // =M35+L35+K35+J35+I35+C35-B35 (and + G)
+
+                if (sub == 2) {
+                    //        P = M + L + K + J + I + C - B;
+                    P = M + L + I + C - B;
+                }
+
+
+                // Q =1/(1+$R$89/365/100)^O27
+
+
+                // T 
+                // T =M31+L31+K31+J31+I31+C31
+                //     T = M + L + K +J + I + C;
+                T = M + L + I + C;
+                if (sub == 2)
+                    T_sum += T;
+
+
+
+                value_final -= month_fee;
+
+
+                // ==================================================================
+
+
+
+                //# A 1
+                template += "<td>" + month + "</td>";
+
+                //# F 6
+                template += "<td>" + sub_start.getDate() + "." + (sub_start.getMonth() + 1) + "." + sub_start.getFullYear() + "</td>";
+
+
+                //# B 2 
+                //      if(sub == 1)
+                //        template += "<td>0.00</td>";
+                //      else
+                template += "<td>" + month_fee.toFixed(2) + "</td>";
+
+
+                //# C 3
+                //      if(sub == 1)
+                //        template += "<td>0.00</td>";
+                //      else
+                template += "<td>" + month_fee_accord.toFixed(2) + "</td>";
+
+                //# D 4
+                template += "<td>" + value_in.toFixed(2) + "</td>";
+
+
+                //# E 5
+                template += "<td>" + value_out.toFixed(2) + "</td>";
+
+
+                //# G 7
+                template += "<td class=\"tech\">" + G.toFixed(2) + "</td>";
+
+                //# H 8
+                //if(sub == 1){
+                //  template += "<td class=\"tech\">"+sub_end_prev.getDate()+"."+(sub_end_prev.getMonth()+1)+"."+sub_end_prev.getFullYear()+"</td>";
+                //}
+                //else
+                template += "<td class=\"tech\">" + sub_end.getDate() + "." + (sub_end.getMonth() + 1) + "." + sub_end.getFullYear() + "</td>";
+
+                //# I 9
+                if (sub == 2) {
+                    template += "<td>" + I.toFixed(2) + "</td>";
+                    I = G;
+                } else
+                    template += "<td>0.00</td>";
+
+
+                //# J 10
+                template += "<td>0.00</td>";
+
+                //# K 11
+                template += "<td>0.00</td>";
+
+                //# L 12
+                template += "<td>" + L.toFixed(2) + "</td>";
+
+
+                //# M 13
+                template += "<td>" + M.toFixed(2) + "</td>";
+
+
+                //# N 14
+                template += "<td class=\"tech\">" + days_in_period + "</td>";
+
+                //# O 15
+                days_commulative[S - 1] = days_total || 0;
+                template += "<td class=\"tech\">" + days_total + "</td>";
+
+
+
+                //# P 16
+                if (sub == 1) {
+                    flux_commulative[S - 1] = 0;
+                    template += "<td class=\"tech\">0.00</td>";
+                } else {
+                    flux_commulative[S - 1] = P.toFixed(2);
+                    template += "<td class=\"tech\">" + P.toFixed(2) + "</td>";
+                }
+
+
+                //# Q 17
+                template += "<td class=\"tech\">?</td>";
+
+                //# R 18 
+                template += "<td class=\"tech\">?</td>";
+
+
+                //# S 19
+                template += "<td class=\"tech\">" + (S++) + "</td>";
+
+                //# T 20
+                if (sub == 2)
+                    template += "<td>" + T.toFixed(2) + "</td>";
+                else
+                    template += "<td></td>";
+
+
+
+                template += "</tr>";
+            }
+        }
+
+        $(".scheme2-full tbody").append(template);
+
+
+
+        //console.log(flux_commulative);
+        //console.log(days_commulative);
+        //    console.log(flux_commulative[61]);
+
+
+
+        /// DAE 
+        //for (var dae = rate; dae <= 1000; dae += 0.001) {
+        // improve approximation to final value so  there is no infinite cycle running
+        for (var dae = rate_p; dae <= rate_p + 5; dae += 0.001) {
+            npv_sum = value - commission_usage;
+
+            for (var month = 1; month < S - 1; month++) {
+                flux = flux_commulative[month] * 1;
+
+
+                //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+                discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+                npv = flux * discount;
+                npv_sum -= npv;
+                //        console.log("1/Math.pow((1+"+dae+"/365/100), "+days_commulative[month]+")");
+                //        console.log(month+ " " + flux.toFixed(2) +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0) + " " + days_commulative[month]);
+                if (npv_sum < -1 && month > 2) {
+                    //  skip a few extra iterations when we know we're wrong
+                    break;
+                }
+            }
+
+            //      console.log(dae);
+            //      console.log(npv_sum.toFixed(2));
+
+            if (npv_sum > -1 && npv_sum < 1) {
+                npv_sum = 0;
+                //        console.log(dae);
+                //        console.log(npv_sum.toFixed(2));
+                //        console.log('return');
+                break;
+            }
+        }
+
+
+
+
+        npv_sum = value - commission_usage;
+        for (var month = 1; month < S - 1; month++) {
+            flux = flux_commulative[month] * 1;
+
+            //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+            discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+            npv = flux * discount;
+
+            npv_sum -= npv;
+            //        console.log("1/Math.pow((1+"+dae+"/365/100), "+days_commulative[month]+")");
+            //        console.log(month+ " " + flux.toFixed(2) +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0) + " " + days_commulative[month]);
+
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(16)')[0]).text(discount.toFixed(5));
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(17)')[0]).text(npv.toFixed(2));
+            //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2));
+        }
+
+
+
+        T_sum += K + J;
+
+        template = "<tr>";
+        template += "<td>TOTAL</td>";
+        template += "<td class=\"tech\"></td>";
+        //        template += "<td>"+value.toFixed(2)+"</td>";
+        //        template += "<td>"+value.toFixed(2)+"</td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td class=\"tech\">" + G_sum.toFixed(2) + "</td>";
+        template += "<td></td>";
+        template += "<td>" + I_sum.toFixed(2) + "</td>";
+        template += "<td>" + commission_exam.toFixed(2) + "</td>";
+        template += "<td>" + commission_according_n.toFixed(2) + "</td>";
+        template += "<td>" + commission_administration_m_n_sum.toFixed(2) + "</td>";
+        template += "<td>" + M_sum.toFixed(2) + "</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td>" + T_sum.toFixed(2) + "</td>";
+        template += "</tr>";
+
+
+        template += "<tr class=\"tech\">";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td>DAE:</td>";
+        template += "<td>" + dae.toFixed(1) + "</td>";
+        template += "<td></td>";
+        template += "</tr>";
+
+        $(".scheme2-full tbody").append(template);
+        $('#dae').text(dae.toFixed(1));
+    }
+
+
+
+
+    function calculate_scheme_2(p) {
+        var period = parseInt($('#period').val(), 10);
+        var pay_date = $('#pay_date').val();
+        var value = parseInt($('#value').val(), 10);
+
+
+        var rate_p = parseFloat(p.rate_p);
+        var start_date = $("#start_date").datepicker('getDate');
+		
+		/*
+		console.log('start_date: %s', start_date);
+		console.log('value: %s', value);
+		console.log('period: %s', period);
+		console.log('pay_date: %s', pay_date);
+		/**/
+
+
+        var curr_date = start_date;
+        var end_date = new Date(start_date);
+        end_date.setMonth(start_date.getMonth() + period);
+
+        var month_fee = 0;
+        var month_fee_fixed = 0;
+        var month_fee_sum = 0.0;
+        var value_current = value.toFixed(2);
+        var month_fee = 0;
+        var old_date = new Date(curr_date);
+        var rate = rate_p / 100;
+        var value_final = value;
+        var days_total = 0;
+        var day_payment = 0;
+        var period_payment = 0;
+        var period_payment_total = 0;
+        var flux = 0;
+        var flux_original = 0;
+        var flux_last = 0;
+        var flux_month = [];
+        var nvp = 0;
+        var npv_sum = 0;
+        var total_payment = 0;
+        var total_payment_sum = 0;
+        var commission_exam = p.commission_exam * 1;
+        var commission_administration_m_n = value * parseFloat(p.commission_administration_m_p) / 100;
+        var commission_administration_m_n_sum = 0;
+        var commission_administration_day_n = 0;
+        var discount = 0;
+        var days_commulative = [];
+
+        var commission_according_n = value * p.commission_accord_p / 100;
+        if (commission_according_n < p.commission_accord_min) {
+            commission_according_n = p.commission_accord_min;
+        }
+
+
+        var r = rate / 12;
+        commission_administration_day_n = value * parseFloat(p.commission_administration_m_p) * 12 / 100 / 365;
+
+        template = "  <tr>";
+        template += "    <th>Luna</th>";
+        template += "    <th>Data</th>";
+        template += "    <th>Sold credit</th>";
+        template += "    <th>Suma creditului acordat</th>";
+        template += "    <th>Rata lunară</th> ";
+        template += "    <th>Credit rămas</th>";
+        template += "    <th>Comision examinare</th>";
+        template += "    <th>Comision acordare</th>";
+        template += "    <th>Comision administrare</th>";
+        template += "    <th class=\"tech\">Dobânda zilnica</th>";
+        template += "    <th class=\"tech\">Număr zile în perioadă</th>";
+        template += "    <th class=\"tech\">Zile cumulativ</th>";
+        template += "    <th>Dobânda</th>";
+        template += "    <th class=\"tech\">Flux</th>";
+        template += "    <th class=\"tech\">Coeficient de discontare</th>";
+        template += "    <th class=\"tech\">NPV</th>";
+        template += "    <th>Plata lunară</th>";
+        template += "  </tr>";
+        template += "  <tr class=\"tech\">";
+        template += "    <th>1</th>";
+        template += "    <th>2</th>";
+        template += "    <th>3</th>";
+        template += "    <th>4</th>";
+        template += "    <th>5</th>";
+        template += "    <th>6</th>";
+        template += "    <th>7</th>";
+        template += "    <th>8</th>";
+        template += "    <th>9</th>";
+        template += "    <th>10</th>";
+        template += "    <th>11</th>";
+        template += "    <th>12</th>";
+        template += "    <th>13</th>";
+        template += "    <th>14</th>";
+        template += "    <th>15</th>";
+        template += "    <th>16</th>";
+        template += "    <th>17</th>";
+        template += " </tr>";
+
+        $(".scheme2-full tbody").append(template);
+
+        var template = "";
+
+
+        for (var month = 0; month <= period; month++) {
+            template += "<tr class=\"data\">";
+
+            old_date = new Date(curr_date);
+            curr_date = get_next_pay_date(month, curr_date, pay_date, end_date);
+
+            days_in_period = parseInt(((curr_date - old_date) / (1000 * 24 * 3600)).toFixed(), 10);
+			
+			
+
+            //      console.log(days_in_period);
+
+
+            if(month > 0) {
+				// 3 
+                value_current -= month_fee;
+                //        value_current = value_current.toFixed(2);
+				
+				// 9
+                commission_administration_m_n = (commission_administration_day_n * days_in_period).toFixed(2);
+                commission_administration_m_n_sum += commission_administration_m_n * 1;
+            }
+
+            // 10 
+            day_payment = (value_current * rate / 365).toFixed(2);
+
+            // 13 
+            //      period_payment = (day_payment * days_in_period).toFixed(2);
+            period_payment = (day_payment * days_in_period);
+
+            // 17 
+            // = Suma credit/((1+rata dobinzii/100/termen credit)^termen credit-1)*10.5/100/12*(1+10.5/100/termen credit)^termen credit+(comision pentru o zi*365/12)
+            //      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/12 ).toFixed(2);
+            ///      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/12 );
+            //      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/period );
+            total_payment = (value / (Math.pow(1 + rate / 12, period) - 1) * r * Math.pow(1 + rate / 12, period) + commission_administration_day_n * 365 / 12);
+
+            // 5
+            if (month > 0 && month < period) {
+                month_fee = (total_payment - period_payment - commission_administration_m_n).toFixed(2);
+                //        month_fee = total_payment - period_payment - commission_administration_m_n;
+            } else if (month == period) {
+                month_fee = value_current;
+            }
+
+            month_fee_sum += month_fee * 1;
+
+            // #1
+            template += "<td>" + month + "</td>";
+
+            // #2 
+            template += "<td>" + curr_date.getDate() + "." + (curr_date.getMonth() + 1) + "." + curr_date.getFullYear() + "</td>";
+
+            // #3
+            template += "<td>" + (value_current * 1).toFixed(2) + "</td>";
+            //      template += "<td>"+value_current+"</td>";
+
+            // #4
+            if (month == 0) {
+                template += "<td>" + value + "</td>";
+            } else {
+                template += "<td>0.00</td>";
+            }
+
+            // #5
+            ///  =======    0.105 / 12 : month
+            /// Suma credit / ( (1+rata/100/12)^termen-1) * rata/100/12 * (1+rata/100/12)^termen
+            template += "<td>" + (month_fee * 1).toFixed(2) + "</td>";
+            //     template += "<td>" + month_fee + "</td>";
+			
+			/*
+			if(month < 5) {
+				console.group('calculating month #'+month);
+				console.log('days_in_period: %s', days_in_period);
+				console.log('total_payment: %s', total_payment);
+				console.log('commission_administration_m_n: %s', commission_administration_m_n);
+				console.log('month_fee = (total_payment - period_payment - commission_administration_m_n): %s', month_fee);
+				console.log('total_payment: %s', total_payment);
+				console.log('period_payment: %s', period_payment);
+				console.log('commission_administration_m_n: %s', commission_administration_m_n);
+				console.log('old_date: ' + old_date);
+				console.log('curr_date: ' + curr_date);
+				console.groupEnd();
+			}
+			/**/
+				
+
+            // #6
+            value_final -= month_fee;
+            //      value_final = value_final.toFixed(2);
+            template += "<td>" + (value_final * 1).toFixed(2) + "</td>";
+
+
+            // #7
+            if (month == 0) {
+                template += "<td>" + commission_exam + "</td>";
+            } else {
+                template += "<td>0.00</td>";
+            }
+
+
+            // #8
+            if (month == 0) {
+                template += "<td>" + commission_according_n + "</td>";
+            } else {
+                template += "<td>0.00</td>";
+            }
+
+            // #9
+            if (month == 0)
+                template += "<td>0.00</td>";
+            else {
+                template += "<td>" + (commission_administration_m_n * 1).toFixed(2) + "</td>";
+                //         template += "<td>"+ commission_administration_m_n + "</td>";
+            }
+
+
+            // #10
+            // for #5 must be counted here 
+            ///     day_payment = (value_final * rate / 365).toFixed(2);
+            //     day_payment = value_current * rate / 365;
+
+
+
+            if (month == 0) {
+                template += "<td class=\"tech\">0.00</td>";
+            } else {
+                template += "<td class=\"tech\">" + (day_payment * 1).toFixed(2) + "</td>";
+                //         template += "<td>" + day_payment + "</td>";
+            }
+
+            // #11
+            if (month == 0) {
+                template += "<td class=\"tech\">0</td>";
+            } else {
+                template += "<td class=\"tech\">" + days_in_period + "</td>";
+			}
+
+            // #12
+            days_total += days_in_period;
+            days_commulative[month] = days_total;
+            template += "<td class=\"tech\">" + days_total + "</td>";
+
+            // #13
+            if (month == 0) {
+                template += "<td>0.00</td>";
+            } else {
+                template += "<td>" + period_payment.toFixed(2) + "</td>";
+                //       template += "<td>" + period_payment + "</td>";
+                period_payment_total += period_payment * 1;
+            }
+
+
+            // #14
+            // -4+5+7+8+9+13
+            if (month == 0)
+                template += "<td class=\"tech\">0.00</td>";
+            else {
+                //       flux = (month_fee*1 + commission_administration_m_n*1 + period_payment*1).toFixed(2);
+                flux = month_fee * 1 + commission_administration_m_n * 1 + period_payment * 1;
+                flux_month[month] = flux;
+                template += "<td class=\"tech\">" + flux.toFixed(2) + "</td>";
+                //       template += "<td>" + flux + "</td>";
+            }
+            if (month == 1) {
+                flux_original = flux;
+            }
+            if (month == period) {
+                flux_last = flux;
+            }
+
+
+
+            // #15
+            template += "<td class=\"tech\">" + "0.00" + "</td>";
+
+
+            // #16
+            if (month == 0)
+                //        npv_sum = (value - commission_exam - commission_according_n).toFixed(2);
+                npv_sum = value - commission_exam - commission_according_n;
+
+            template += "<td class=\"tech\">" + npv_sum.toFixed(2); + "</td>";
+            //      template += "<td>" + npv_sum; + "</td>";
+
+
+
+            //#17       5+7+8+9+13
+            if (month == 0) {
+                total_payment = commission_exam + commission_according_n;
+			}
+
+            if (month == period) {
+                //        total_payment = (month_fee*1 + commission_administration_m_n*1 + period_payment*1).toFixed(2);
+                total_payment = month_fee * 1 + commission_administration_m_n * 1 + period_payment * 1;
+			}
+
+            total_payment_sum += total_payment * 1;
+            //      template += "<td>" + total_payment + "</td>";
+            template += "<td>" + total_payment.toFixed(2) + "</td>";
+
+            template += "</tr>";
+        }
+
+
+        $(".scheme2-full tbody").append(template);
+
+
+
+        /// DAE 
+        for (var dae = rate_p; dae <= 1000; dae += 0.0001) {
+            npv_sum = value - commission_exam - commission_according_n;
+
+            for (var month = 1; month <= period; month++) {
+                //        flux = flux_original;
+                flux = flux_month[month];
+
+                //        if(month == period)
+                //          flux = flux_last;
+
+                //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+
+                discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+                npv = flux * discount;
+                npv_sum -= npv;
+                //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0));
+            }
+
+            //      console.log(dae);
+            //      console.log(npv_sum.toFixed(2));
+
+            if (npv_sum >= 0) {
+                //        console.log(dae);
+                //        console.log(npv_sum.toFixed(2));
+                //        console.log('return');
+                break;
+            }
+        }
+
+        for (var month = 1; month <= period; month++) {
+            flux = flux_month[month];
+            //        flux = flux_original;
+
+            //        if(month == period)
+            //          flux = flux_last;
+
+            //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+            discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+            npv = flux * discount;
+
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(14)')[0]).text(discount.toFixed(5));
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(15)')[0]).text(npv.toFixed(2));
+            //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2));
+        }
+
+
+        template = "<tr>";
+        template += "<td></td>";
+        template += "<td>TOTAL</td>";
+        template += "<td></td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>" + month_fee_sum.toFixed(2) + "</td>";
+        template += "<td></td>";
+        template += "<td>" + commission_exam.toFixed(2) + "</td>";
+        template += "<td>" + commission_according_n.toFixed(2) + "</td>";
+        //        template += "<td>"+commission_administration_m_n_sum.toFixed(2)+"</td>";
+        template += "<td>" + commission_administration_m_n_sum.toFixed(2) + "</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td>" + period_payment_total.toFixed(2) + "</td>";
+        //        template += "<td>"+period_payment_total.toFixed()+"</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\">" + npv_sum.toFixed(2) + "</td>";
+        template += "<td>" + total_payment_sum.toFixed(2) + "</td>";
+        //        template += "<td>"+total_payment_sum+"</td>";
+        template += "</tr>";
+
+        template += "<tr class=\"tech\">";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td>DAE:</td>";
+        template += "<td>" + dae.toFixed(1) + "</td>";
+        template += "<td></td>";
+        template += "</tr>";
+
+        $(".scheme2-full tbody").append(template);
+        $('#dae').text(dae.toFixed(1));
+    }
+	
+	
+	
+
+
+
+
+    function calculate_scheme_1(p) {
+        $(".scheme2-full tr").each(function(elm) {
+            $(this).remove()
+        })
+
+
+        var period = parseInt($('#period').val());
+        var pay_date = $('#pay_date').val();
+        var value = parseInt($('#value').val());
+
+        var rate_p = parseFloat(p.rate_p);
+        var start_date = $("#start_date").datepicker('getDate');
+
+
+
+        var curr_date = start_date;
+        var end_date = new Date(start_date);
+        end_date.setMonth(start_date.getMonth() + period);
+
+        var month_fee = 0;
+        var month_fee_fixed = 0;
+        var month_fee_sum = 0.0;
+        var value_current = value.toFixed(2);
+        var month_fee = 0;
+        var old_date = new Date(curr_date);
+        var rate = rate_p / 100;
+        var value_final = value;
+        var days_total = 0;
+        var day_payment = 0;
+        var period_payment = 0;
+        var period_payment_total = 0;
+        var flux = 0;
+        var flux_original = 0;
+        var flux_last = 0;
+        var flux_month = [];
+        var nvp = 0;
+        var npv_sum = 0;
+        var total_payment = 0;
+        var total_payment_sum = 0;
+        var commission_exam = p.commission_exam * 1;
+        var commission_administration_m_n = value * parseFloat(p.commission_administration_m_p) / 100;
+        var commission_administration_m_n_sum = 0;
+        var commission_administration_day_n = 0;
+        var discount = 0;
+        var days_commulative = [];
+
+        var commission_according_n = value * p.commission_accord_p / 100;
+        if (commission_according_n < p.commission_accord_min)
+            commission_according_n = p.commission_accord_min;
+
+
+        var r = rate / 12;
+        commission_administration_day_n = value * parseFloat(p.commission_administration_m_p) * 12 / 100 / 365;
+        //    commission_administration_day_n = value * parseFloat(p.commission_administration_m_p) * period / 100 / 365;
+
+
+        template = "  <tr>";
+        template += "    <th>Luna</th>";
+        template += "    <th>Data</th>";
+        template += "    <th>Sold inițial al creditului</th>";
+        template += "    <th>Suma creditului acordată</th>";
+        template += "    <th>Suma creditului rambursată</th>";
+        template += "    <th>Sold final al creditului</th>";
+        template += "    <th>Comision pentru examinare</th>";
+        template += "    <th>Suma comisionului de acordare/utilizare</th>";
+        template += "    <th>Comision pentru administrare</th>";
+        template += "    <th class=\"tech\">Dobânda zilnică</th>";
+        template += "    <th class=\"tech\">Număr zile în perioadă</th>";
+        template += "    <th class=\"tech\">Zile cumulativ</th>";
+        template += "    <th>Dobînda calculata</th>";
+        template += "    <th class=\"tech\">Flux</th>";
+        template += "    <th class=\"tech\">Coeficient de discontare</th>";
+        template += "    <th class=\"tech\">NPV</th>";
+        template += "    <th>TOTAL plăţi</th>";
+        template += "  </tr>";
+        template += "  <tr class=\"tech\">";
+        template += "    <th>1</th>";
+        template += "    <th>2</th>";
+        template += "    <th>3</th>";
+        template += "    <th>4</th>";
+        template += "    <th>5</th>";
+        template += "    <th>6</th>";
+        template += "    <th>7</th>";
+        template += "    <th>8</th>";
+        template += "    <th>9</th>";
+        template += "    <th>10</th>";
+        template += "    <th>11</th>";
+        template += "    <th>12</th>";
+        template += "    <th>13</th>";
+        template += "    <th>14</th>";
+        template += "    <th>15</th>";
+        template += "    <th>16</th>";
+        template += "    <th>17</th>";
+        template += " </tr>";
+
+
+        //        console.log(template);
+        $(".scheme2-full tbody").append(template);
+
+
+        var template = "";
+
+
+
+
+        for (var month = 0; month <= period; month++) {
+            template += "<tr class=\"data\">";
+
+            old_date = new Date(curr_date);
+            curr_date = get_next_pay_date(month, curr_date, pay_date, end_date);
+
+            days_in_period = parseInt(((curr_date - old_date) / (1000 * 24 * 3600)).toFixed());
+
+            //      console.log(days_in_period);
+
+
+            // 3 
+            if (month > 0) {
+                value_current -= month_fee_fixed;
+                //        value_current = value_current.toFixed(2);
+            }
+
+
+            // 9
+            if (month > 0) {
+                commission_administration_m_n = (commission_administration_day_n * days_in_period).toFixed(2);
+                commission_administration_m_n_sum += commission_administration_m_n * 1;
+            }
+
+            // 10 
+            day_payment = (value_current * rate / 365).toFixed(2);
+
+            // 13 
+            //      period_payment = (day_payment * days_in_period).toFixed(2);
+            period_payment = (day_payment * days_in_period);
+
+
+
+            // 17 
+            // = Suma credit/((1+rata dobinzii/100/termen credit)^termen credit-1)*10.5/100/12*(1+10.5/100/termen credit)^termen credit+(comision pentru o zi*365/12)
+            //      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/12 ).toFixed(2);
+            //      total_payment = (value / ( Math.pow(1+rate/period, period) - 1) * r * Math.pow(1+rate/period, period) + commission_administration_day_n*365/12 );
+
+
+            //      total_payment = value / period;
+
+
+
+            // 5
+            if (month > 0 && month < period) {
+                month_fee_fixed = value / period;
+            } else if (month == period) {
+                month_fee_fixed = value_current;
+            }
+
+            month_fee_sum += month_fee_fixed * 1;
+
+
+            // 15 = 5 + 7 + 8 + 9 + 13 - 4
+            total_payment = month_fee_fixed + commission_administration_m_n * 1 + period_payment;
+
+            //      if(month == period){
+            //        total_payment = value_current;
+            //      }
+
+            // 14 
+            flux = total_payment;
+            flux_month[month] = flux;
+
+
+
+            // #1
+            template += "<td>" + month + "</td>";
+
+            // #2 
+            template += "<td>" + curr_date.getDate() + "." + (curr_date.getMonth() + 1) + "." + curr_date.getFullYear() + "</td>";
+
+            // #3
+            template += "<td>" + (value_current * 1).toFixed(2) + "</td>";
+            //      template += "<td>"+value_current+"</td>";
+
+            // #4
+            if (month == 0) {
+                template += "<td>" + value + "</td>";
+            } else {
+                template += "<td>0.00</td>";
+            }
+
+            // #5
+            ///  =======    0.105 / 12 : month
+            /// Suma credit / ( (1+rata/100/12)^termen-1) * rata/100/12 * (1+rata/100/12)^termen
+            template += "<td>" + (month_fee_fixed * 1).toFixed(2) + "</td>";
+            //     template += "<td>" + month_fee + "</td>";
+
+
+            // #6
+            value_final -= month_fee_fixed;
+            //      value_final = value_final.toFixed(2);
+            template += "<td>" + (value_final * 1).toFixed(2) + "</td>";
+
+
+            // #7
+            if (month == 0)
+                template += "<td>" + commission_exam + "</td>";
+            else
+                template += "<td>0.00</td>";
+
+
+            // #8
+            if (month == 0)
+                template += "<td>" + commission_according_n + "</td>";
+            else
+                template += "<td>0.00</td>";
+
+            // #9
+            if (month == 0)
+                template += "<td>0.00</td>";
+            else {
+                template += "<td>" + (commission_administration_m_n * 1).toFixed(2) + "</td>";
+                //         template += "<td>"+ commission_administration_m_n + "</td>";
+            }
+
+
+            // #10
+            // for #5 must be counted here 
+            ///     day_payment = (value_final * rate / 365).toFixed(2);
+            //     day_payment = value_current * rate / 365;
+
+
+
+            if (month == 0)
+                template += "<td class=\"tech\">0.00</td>";
+            else {
+                template += "<td class=\"tech\">" + (day_payment * 1).toFixed(2) + "</td>";
+            }
+
+            // #11
+            if (month == 0)
+                template += "<td class=\"tech\">0</td>";
+            else
+                template += "<td class=\"tech\">" + days_in_period + "</td>";
+
+            // #12
+            days_total += days_in_period;
+            days_commulative[month] = days_total;
+            template += "<td class=\"tech\">" + days_total + "</td>";
+
+            // #13
+            if (month == 0)
+                template += "<td>0.00</td>";
+            else {
+                template += "<td>" + period_payment.toFixed(2) + "</td>";
+                //       template += "<td>" + period_payment + "</td>";
+                period_payment_total += period_payment * 1;
+            }
+
+
+            // #14
+            // -4+5+7+8+9+13
+            if (month == 0)
+                template += "<td class=\"tech\">0.00</td>";
+            else {
+                //       flux = (month_fee*1 + commission_administration_m_n*1 + period_payment*1).toFixed(2);
+                //       flux = month_fee_fixed*1 + commission_administration_m_n*1 + period_payment*1;
+                template += "<td class=\"tech\">" + flux.toFixed(2) + "</td>";
+                //       template += "<td>" + flux + "</td>";
+            }
+
+            if (month == 1) {
+                flux_original = flux;
+            }
+            if (month == period) {
+                flux_last = flux;
+            }
+
+
+
+            // #15
+            template += "<td class=\"tech\">" + "0.00" + "</td>";
+
+
+            // #16
+            if (month == 0)
+                //        npv_sum = (value - commission_exam - commission_according_n).toFixed(2);
+                npv_sum = value - commission_exam - commission_according_n;
+
+            template += "<td class=\"tech\">" + npv_sum.toFixed(2); + "</td>";
+            //      template += "<td>" + npv_sum; + "</td>";
+
+
+
+            //#17       5+7+8+9+13
+            if (month == 0)
+                total_payment = commission_exam + commission_according_n;
+
+            if (month == period) {
+                //        total_payment = (month_fee*1 + commission_administration_m_n*1 + period_payment*1).toFixed(2);
+                //total_payment = month_fee_fixed*1 + commission_administration_m_n*1 + period_payment*1;
+                //        total_payment = 0;
+            }
+
+            total_payment_sum += total_payment * 1;
+            //      template += "<td>" + total_payment + "</td>";
+            template += "<td>" + total_payment.toFixed(2) + "</td>";
+
+            template += "</tr>";
+        }
+
+
+        $(".scheme2-full tbody").append(template);
+
+
+
+        /// DAE 
+        for (var dae = 1; dae <= 5000; dae += 0.005) {
+            npv_sum = value - commission_exam - commission_according_n;
+
+            for (var month = 1; month <= period; month++) {
+                flux = flux_month[month];
+
+                //        if(month == period)
+                //          flux = flux_last;
+
+
+                discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+
+                //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+                //        discount = 1/Math.pow((1+dae/100), (days_commulative[month]));
+                npv = flux * discount;
+                npv_sum -= npv;
+                //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2) + " " + npv_sum.toFixed(0));
+            }
+
+            //      console.log(dae);
+            //      console.log(npv_sum.toFixed(2));
+
+            if (npv_sum >= 0) {
+                npv_sum = 0;
+                //        console.log(dae);
+                //        console.log(npv_sum.toFixed(2));
+                //        console.log('return');
+                break;
+            }
+        }
+
+
+
+
+        for (var month = 1; month <= period; month++) {
+            //        flux = flux_original;
+            flux = flux_month[month];
+            console.log(flux);
+            //
+            //        if(month == period)
+            //          flux = flux_last;
+
+            discount = 1 / Math.pow((1 + dae / 100), (days_commulative[month] / 365));
+            //        discount = 1/Math.pow((1+dae/365/100), (days_commulative[month]));
+            npv = flux * discount;
+
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(14)')[0]).text(discount.toFixed(5));
+            $($('.scheme2-full tr:eq(' + (month + 2) + ')').find('td:eq(15)')[0]).text(npv.toFixed(2));
+
+            //        console.log(month+ " " + flux +  " " +discount.toFixed(5) + " " + npv.toFixed(2));
+        }
+
+
+        template = "<tr>";
+        template += "<td></td>";
+        template += "<td>TOTAL</td>";
+        template += "<td></td>";
+        template += "<td>" + value + "</td>";
+        template += "<td>" + month_fee_sum.toFixed(2) + "</td>";
+        template += "<td></td>";
+        template += "<td>" + commission_exam.toFixed(2) + "</td>";
+        template += "<td>" + commission_according_n.toFixed(2) + "</td>";
+        //        template += "<td>"+commission_administration_m_n_sum.toFixed(2)+"</td>";
+        template += "<td>" + commission_administration_m_n_sum.toFixed(2) + "</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td>" + period_payment_total.toFixed(2) + "</td>";
+        //        template += "<td>"+period_payment_total.toFixed()+"</td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\"></td>";
+        template += "<td class=\"tech\">" + npv_sum.toFixed(2) + "</td>";
+        template += "<td>" + total_payment_sum.toFixed(2) + "</td>";
+        //        template += "<td>"+total_payment_sum+"</td>";
+        template += "</tr>";
+
+        template += "<tr class=\"tech\">";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td></td>";
+        template += "<td>DAE:</td>";
+        template += "<td>" + dae.toFixed(1) + "</td>";
+        template += "<td></td>";
+        template += "</tr>";
+
+        $(".scheme2-full tbody").append(template);
+        $('#dae').text(dae.toFixed(1));
+    }
+
+
+
+
+    function get_next_pay_date(month, curr_date, pay_date, end_date) {
+		
+		//console.log('get_next_pay_date('+month+', '+curr_date+', '+pay_date+', '+end_date+')');
+		
+        var month_start = curr_date.getMonth();
+        var date_start = curr_date.getDate();
+        var d2 = new Date(curr_date);
+
+        if (month == 0) {
+            return curr_date;
+        } else if (month == 1) {
+            //curr_date
+            d2.setDate(pay_date);
+            if (d2 - curr_date <= 0) {
+                d2.setMonth(d2.getMonth() + 1);
+            }
+
+            if (d2 - curr_date < 1000 * 15 * 60 * 60 * 24) {
+                d2.setMonth(d2.getMonth() + 1);
+            }
+
+            return move_date(d2);
+        } else {
+            d2.setMonth(d2.getMonth() + 1);
+            d2.setDate(pay_date);
+
+            if (d2 > end_date)
+                d2 = end_date;
+
+            d2 = move_date(d2);
+            return d2;
+        }
+    }
+
+
+
+    function move_date(d2) {
+        var disabledDays = ["1.1", "3.8", "5.1", "5.9", "8.27", "8.31", "12.25"];
+
+        if (d2.getDay() == 6) {
+            d2.setDate(d2.getDate() + 1);
+        }
+        if (d2.getDay() == 0) {
+            d2.setDate(d2.getDate() + 1);
+        }
+
+
+        var date_small = (d2.getMonth() + 1) + '.' + d2.getDate();
+        //  console.log(date_small);
+
+        if (jQuery.inArray(date_small, disabledDays) != -1) {
+            d2.setDate(d2.getDate() + 1);
+            move_date(d2);
+        }
+
+        return d2;
+    }
+
+
+
+
+    function validate(p) {
+        $('#product').removeClass('err');
+        $("#start_date").removeClass('err');
+        $('#period').removeClass('err');
+        $('#pay_date').removeClass('err');
+        $('#value').removeClass('err');
+        $("#start_date").datepicker('getDate')
+        var clear = true;
+
+        if (!p) {
+            $('#product').addClass('err');
+            clear = false;
+            return clear;
+        }
+
+        if (!$("#start_date").datepicker('getDate')) {
+            $("#start_date").addClass('err');
+            clear = false;
+        }
+
+        var period = parseInt($('#period').val());
+        if (!period || period < p.duration_min_m * 1 || period > p.duration_max_m * 1) {
+            clear = false;
+            $('#period').addClass('err');
+        }
+
+
+        var pay_date = parseInt($('#pay_date').val());
+        if (!pay_date || pay_date < p.pay_day_min * 1 || pay_date > p.pay_day_max * 1) {
+            clear = false;
+            $('#pay_date').addClass('err');
+        }
+
+
+        var value = parseInt($('#value').val());
+        if (!value || value < p.sum_min * 1 || value > p.sum_max * 1) {
+            clear = false;
+            $('#value').addClass('err');
+        }
+
+        return clear;
+    }
+</script>
+
+</body>
+
+</html>
